@@ -9,6 +9,7 @@
 #define ECHO 1
 #define LED  2
 #define DELAY 150000
+#define DELAY2 1
 
 double distance()
 {
@@ -39,13 +40,24 @@ int main (void)
     pinMode (ECHO, INPUT);
     pinMode (LED, OUTPUT);
 
+    int count = 0;
     for (;;)
     {
         double dist = distance();
         if (dist < 40)
+        {
+            count = DELAY2;
             digitalWrite (LED, HIGH);
+        }
         else
-            digitalWrite (LED, LOW);
+        {
+            if (count)
+            {
+                --count;
+                if (!count)
+                    digitalWrite (LED, LOW);
+            }
+        }
         printf("Measured Distance = %.2lf cm\n", dist);
         usleep(DELAY);
     }
