@@ -9,6 +9,9 @@
  *    GND(6) <--------> ADDR                              |
  *                      A0 <------------------------------'
  * Compiling command: gcc -o thermistor thermistor2.c -lm
+ * Running result:
+ * pi@raspberrypi:~/myPi/ads1115 $ ./thermistor 
+ * Vout = 29669.400391, Rt = 128855.250000, Temperature: 20.107014 (C), 68.192627 (F)
  */
 
 #include <stdio.h>
