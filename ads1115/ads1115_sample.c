@@ -49,7 +49,7 @@ int16_t readADC(int handler)
     // conversion 
     writeBuf[0] = CONFIG_REG; // This sets the pointer register so that the following two
                               // bytes write to the config register
-    writeBuf[1] = 0xC5;       // This sets the 8 MSBs of the config register (bits 15-8) to
+    writeBuf[1] = 0xC3;       // This sets the 8 MSBs of the config register (bits 15-8) to
                               // 11000011
     writeBuf[2] = 0x03;       // This sets the 8 LSBs of the config register (bits 7-0) to
                               // 00000011
@@ -96,7 +96,7 @@ int main() {
     for (;;) {
         readVal = readADC(I2CFile);
         // Print the result to terminal, first convert from binary value to mV
-        printf("readVal = %u, Voltage Reading %f (V) \n", readVal, (float)readVal*FSR[2]/32767.0);
+        printf("readVal = %u, Voltage Reading %f (V) \n", readVal, (float)readVal*FSR[1]/32767.0);
         usleep(DELAY);
     }
 

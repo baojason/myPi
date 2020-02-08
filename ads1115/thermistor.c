@@ -47,9 +47,12 @@
 #define CFG_COMP_LAT_SHIFT  2
 #define CFG_COMP_QUE_SHIFT  0
 
+#define FSR_4096    1
+#define FSR_2048    2
 #define CFG_OS_SINGLE_CONVERSION    0x80
 #define CFG_MUX_AIN0_GND            0x40
-#define CFG_PGA_2048                0x04
+#define CFG_PGA_RANGE_4096          (FSR_4096 << 1)
+#define CFG_PGA_RANGE_2048          (FSR_2048 << 1)
 #define CFG_MODE_SINGLE_SHOT        0x01
 #define CFG_DATA_RATE_8SPS          0x00
 #define CFG_COMP_MODE_TRADITION     0x00
@@ -57,7 +60,7 @@
 #define CFG_COMP_LAT_NO_LATCH       0x00
 #define CFG_COMP_QUE_DISABLE        0x03
 
-#define THERMISTOR_CFG_HIGH (CFG_OS_SINGLE_CONVERSION | CFG_MUX_AIN0_GND | CFG_PGA_2048 \
+#define THERMISTOR_CFG_HIGH (CFG_OS_SINGLE_CONVERSION | CFG_MUX_AIN0_GND | CFG_PGA_RANGE_4096 \
         | CFG_MODE_SINGLE_SHOT)
 #define THERMISTOR_CFG_LOW  (CFG_DATA_RATE_8SPS | CFG_COMP_MODE_TRADITION | CFG_COMP_POL_LOW \
         | CFG_COMP_LAT_NO_LATCH | CFG_COMP_QUE_DISABLE)
@@ -117,10 +120,17 @@ int16_t readADC(int handler)
     return ret;
 }
 
-float getRt(float Vin, float Vout, float R0)
+float getRt(float Vin, float Vout, float R0, float* pVo)
 {
-    float Vo = Vout * FSR[2] / Vin;
-    return (R0 / ( 3.3 / Vo - 1.0));
+#if 1
+    float Vo = Vout * FSR[FSR_4096] / Vin;
+    *pVo = Vo;
+    return (R0 / ( 3.285 / Vo - 1.0));
+#else
+    float Vo = Vout * FSR[FSR_4096] / Vin;
+    *pVo = Vo;
+    return (R0 * ( 3.3 / Vo - 1.0));
+#endif
 }
 /**
  * Calculate the temperature in Celsius
@@ -134,6 +144,20 @@ float getCelsius(float Rt, float R0, float T0, float B)
     return T0 * B / (T0 * log(Rt/R0) + B) - 273.15;
 }
 
+float getCelsius2(float Rt)
+{
+    const float A = 2.114990448e-3;
+    const float B = 0.3832381228e-4;
+    const float C = 5.228061052e-7;
+    const float Beta = 3799.42;
+    const float R25 = 100000;
+    float logRt = log(Rt);
+    float T;
+    T = (1.0/ (A + Beta*logRt + C * logRt * logRt * logRt)); // Steinhart and Hart Equation.
+                                                 // T  = 1 / {A + B[ln(R)] + C[ln(R)]^3}
+    return T - 273.15;
+}
+
 float getFahrenheit(float tCelsius)
 {
     return (tCelsius * 9.0)/5.0 + 32.0;
@@ -145,11 +169,11 @@ int main() {
     int I2CFile;
     float readVal = 0.0;
     float sumOfRead = 0.0;
-    float Rt, tC, tF;
+    float Rt, tC, tF, Vo;
     const unsigned NumOfSample = 5;
     const float Vin = (float)0x7fff;
-    const float R0 = 100450.0;  // 100K Ohms
-    const float B = 4450.0;     // Beta Value
+    const float R0 = 100000.0;  // 100K Ohms
+    const float B = 3950.0;     // Beta Value
     const float T0 = 298.15;    // 25 Celsium in Kelvin
 
 
@@ -166,12 +190,13 @@ int main() {
             usleep(DELAY2);
         }
         readVal = sumOfRead / (float)NumOfSample;
-        Rt = getRt(Vin, readVal, R0);
+        Rt = getRt(Vin, readVal, R0, &Vo);
         //printf("Rt= %f\n", Rt);
         tC = getCelsius(Rt, R0, T0, B);
+        //tC = getCelsius2(Rt);
         tF = getFahrenheit(tC);
 
-        printf("\rVout = %f, Rt = %f, Temperature: %f (C), %f (F)", readVal, Rt, tC, tF);
+        printf("\rVout = %4.3f(V), Rt = %f, Temperature: %f (C), %f (F)", Vo, Rt, tC, tF);
         fflush(stdout);
         usleep(DELAY);
     }
