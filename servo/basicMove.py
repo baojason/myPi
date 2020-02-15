@@ -33,6 +33,9 @@ except KeyboardInterrupt:
 | running on the Pi(s) whose GPIO are to be manipulated. The normal way |
 | to start pigpio is as a daemon (during system start).                 |
 |                                                                       |
+| This test uses SG90 servo. It has 3 pins, red is connected to 5v,     |
+| brown is connected to GND, orange is connected to GPIO18              |
+|                                                                       |
 | pi@raspberrypi:~ $ sudo pigpiod                                       |
 `======================================================================='
 '''
