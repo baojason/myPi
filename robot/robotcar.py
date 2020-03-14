@@ -10,11 +10,20 @@ IN4             GPIO15          10
 ENB             GPIO18 (PWM0)   12
 
 '''
+#import tty
+import sys
+import termios
+import curses
 import RPi.GPIO as IO
 from time import sleep
 
+#orig_settings = termios.tcgetattr(sys.stdin)
+#tty.setcbreak(sys.stdin)
+
 IO.setwarnings(False)   #do not show any warnings
 IO.setmode(IO.BOARD)    #we are programming the GPIO by BCM pin numbers. (PIN33 as 'GPIO13')
+arrow = { 'A':"up", 'B':"down", 'C':"right", 'D':"left" }
+arrow2 = { 258:"down", 259:"up", 260:"left", 261:"right" }
 
 ENA = 33
 IN1 = 29
@@ -69,6 +78,10 @@ class myCar:
             "stop3" : 0b1111
         }
 
+    def __setHz(self, pwmPin, speed = 100):
+        x = speed/100.0 * self.hz + 10
+        pwmPin.ChangeFrequency(x)
+
     def __setDirection(self, dir):
         dircode = self.dir[dir]
         dir1 = (dircode & 0b1000) != 0
@@ -86,49 +99,153 @@ class myCar:
 
     def forward(self, speed, duration):
         self.__setDirection("forward")
+        self.__setHz(self.pwma)
+        self.__setHz(self.pwmb)
         self.pwma.start(speed)
         self.pwmb.start(speed)
-        sleep(duration)
-        self.stop()
+        #sleep(duration)
+        #self.stop()
 
     def backward(self, speed, duration):
         self.__setDirection("backward")
+        self.__setHz(self.pwma)
+        self.__setHz(self.pwmb)
         self.pwma.start(speed)
         self.pwmb.start(speed)
-        sleep(duration)
-        self.stop()
+        #sleep(duration)
+        #self.stop()
 
-    def fwrdLeft(self, speed, duration):
-        self.__setDirection("fwrdLeft")
+    def clockwise(self, speed, duration):
+        self.__setDirection("clockwise")
+        self.__setHz(self.pwma)
+        self.__setHz(self.pwmb)
         self.pwma.start(speed)
         self.pwmb.start(speed)
-        sleep(duration)
-        self.stop()
+        #sleep(duration)
+        #self.stop()
 
-    def fwrdRight(self, speed, duration):
-        self.__setDirection("fwrdRight")
+    def counterclock(self, speed, duration):
+        self.__setDirection("counterclock")
+        self.__setHz(self.pwma)
+        self.__setHz(self.pwmb)
         self.pwma.start(speed)
         self.pwmb.start(speed)
-        sleep(duration)
-        self.stop()
+        #sleep(duration)
+        #self.stop()
 
-    def bwrdLeft(self, speed, duration):
-        self.__setDirection("bwrdLeft")
-        self.pwma.start(speed)
-        self.pwmb.start(speed)
-        sleep(duration)
-        self.stop()
+    def fwrdLeft(self, speed, duration, cycleSize=0):
+        speeda = speed * (cycleSize/100.0)
+        speedb = speed
+        print ("speeda=%f" % speeda)
+        self.__setHz(self.pwma, cycleSize)
+        self.__setHz(self.pwmb)
+        if cycleSize != 0:
+            self.__setDirection("forward")
+        else:
+            self.__setDirection("fwrdLeft")
+        self.pwma.start(speeda)
+        self.pwmb.start(speedb)
+        #sleep(duration)
+        #self.stop()
 
-    def bwrdRight(self, speed, duration):
-        self.__setDirection("bwrdRight")
-        self.pwma.start(speed)
-        self.pwmb.start(speed)
-        sleep(duration)
-        self.stop()
+    def fwrdRight(self, speed, duration, cycleSize=0):
+        speeda = speed
+        speedb = speed * (cycleSize/100.0)
+        self.__setHz(self.pwma)
+        self.__setHz(self.pwmb, cycleSize)
+        if cycleSize != 0:
+            self.__setDirection("forward")
+        else:
+            self.__setDirection("fwrdRight")
+        self.pwma.start(speeda)
+        self.pwmb.start(speedb)
+        #sleep(duration)
+        #self.stop()
 
+    def bwrdLeft(self, speed, duration, cycleSize=0):
+        speeda = speed * (cycleSize/100.0)
+        speedb = speed
+        self.__setHz(self.pwma, cycleSize)
+        self.__setHz(self.pwmb)
+        if cycleSize != 0:
+            self.__setDirection("backward")
+        else:
+            self.__setDirection("bwrdLeft")
+        self.pwma.start(speeda)
+        self.pwmb.start(speedb)
+        #sleep(duration)
+        #self.stop()
+
+    def bwrdRight(self, speed, duration, cycleSize=0):
+        speeda = speed
+        speedb = speed * (cycleSize/100.0)
+        self.__setHz(self.pwma)
+        self.__setHz(self.pwmb, cycleSize)
+        if cycleSize != 0:
+            self.__setDirection("backward")
+        else:
+            self.__setDirection("bwrdRight")
+        self.pwma.start(speeda)
+        self.pwmb.start(speedb)
+        #sleep(duration)
+        #self.stop()
+
+
+def driver(bot, dir, duration=0.1):
+    pwr = 50
+    if dir=="up":
+        bot.forward(pwr, duration)
+    elif dir=="down":
+        bot.backward(pwr, duration)
+    elif dir=="right":
+        bot.clockwise(pwr, duration)
+    elif dir=="left":
+        bot.counterclock(pwr, duration)
+
+robotCar = myCar(ENA, IN1, IN2, IN3, IN4, ENB)
+def keyloop(stdscr):
+    #sleepTime = int(stdscr.getstr())
+    while (1):
+        curses.flushinp()
+        stdscr.clear()
+        stdscr.addstr("Key in:")
+        doit = stdscr.getch()
+        stdscr.addstr("\n")
+        stdscr.addstr("Input ")
+        print("%u" % doit)
+        stdscr.refresh()
+
+        if doit == ord('N') or doit == ord('n'):
+            robotCar.stop()
+            break
+        if doit >= 258 and doit <= 261:
+            x = arrow2[doit]
+            driver(robotCar, x)
+
+        sleep(0.05)
+        robotCar.stop()
 
 if __name__=='__main__':
-    robotCar = myCar(ENA, IN1, IN2, IN3, IN4, ENB)
+    curses.wrapper(keyloop)
+
+'''
+if __name__=='__main__':
+    try:
+        while True:
+            x=sys.stdin.read(1)
+            if x=='\x1b':
+                x=sys.stdin.read(1)
+                if x=='[':
+                    x=sys.stdin.read(1)
+                    x=arrow[x]
+                    driver(robotCar, x)
+            print(x)
+    except KeyboardInterrupt:
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, orig_settings)  
+        robotCar.stop()
+    '''
+
+'''
     robotCar.forward(100, 1)
     sleep(1)
     robotCar.backward(50, 1)
@@ -137,12 +254,19 @@ if __name__=='__main__':
     sleep(1)
     robotCar.fwrdRight(50, 1)
     sleep(1)
+    robotCar.fwrdLeft(50, 1, 50)
+    sleep(1)
+    robotCar.fwrdRight(50, 1, 50)
+    sleep(1)
     robotCar.bwrdLeft(50, 1)
     sleep(1)
     robotCar.bwrdRight(50, 1)
     sleep(1)
+    robotCar.bwrdLeft(50, 1, 50)
+    sleep(1)
+    robotCar.bwrdRight(50, 1, 50)
+    sleep(1)
 
-'''
 try:
     while 1:                #execute loop forever
 
