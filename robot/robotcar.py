@@ -65,12 +65,12 @@ class myCar:
             "bwrdLeft" : 0b0010,
             "stop1" : 0b0011,
             "bwrdRight" : 0b0100,
-            "clockwise" : 0b0101,
+            "counterclock" : 0b0101,
             "backward" : 0b0110,
             "bwrdRight1" : 0b0111,
             "fwrdRight" : 0b1000,
             "forward" : 0b1001,
-            "counterclock" : 0b1010,
+            "clockwise" : 0b1010,
             "fwrdRight1" : 0b1011,
             "stop2" : 0b1100,
             "fwrdLeft1" : 0b1101,
@@ -192,7 +192,7 @@ class myCar:
 
 
 def driver(bot, dir, duration=0.1):
-    pwr = 50
+    pwr = 80
     if dir=="up":
         bot.forward(pwr, duration)
     elif dir=="down":
