@@ -53,7 +53,7 @@ git config --global --edit
 
 Open the global configuration file in a text editor for manual editing. An in-depth guide on how to configure a text editor for git to use can be found on the Git config page.
 
-Discussion
+# Discussion
 
 All configuration options are stored in plaintext files, so the git config command is really just a convenient command-line interface. Typically, you’ll only need to configure a Git installation the first time you start working on a new development machine, and for virtually all cases, you'll want to use the --global flag. One important exception is to override the author email address. You may wish to set your personal email address for personal and open source repositories, and your professional email address for work-related repositories.
 
