@@ -21,6 +21,7 @@
 #include <linux/slab.h>		/* kmalloc() */
 #include <linux/fs.h>		/* everything... */
 #include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 #include <linux/errno.h>	/* error codes */
 #include <linux/types.h>	/* size_t */
 #include <linux/fcntl.h>
@@ -32,6 +33,11 @@
 
 #include "scull.h"		/* local definitions */
 
+#ifdef SCULL_DEBUG
+static LIST_HEAD(scull_p_list);
+static DEFINE_MUTEX(scull_p_mtx);
+#endif
+
 struct scull_pipe {
         wait_queue_head_t inq, outq;       /* read and write queues */
         char *buffer, *end;                /* begin of buf, end of buf */
@@ -41,6 +47,10 @@ struct scull_pipe {
         struct fasync_struct *async_queue; /* asynchronous readers */
         struct mutex mutex;                /* mutual exclusion semaphore */
         struct cdev cdev;                  /* Char device structure */
+#ifdef SCULL_DEBUG
+        struct list_head list;
+        int devNum;
+#endif
 };
 
 /* parameters */
@@ -269,6 +279,7 @@ static int scull_p_fasync(int fd, struct file *filp, int mode)
 
 /* FIXME this should use seq_file */
 #ifdef SCULL_DEBUG
+#if 0
 static void scullp_proc_offset(char *buf, char **start, off_t *offset, int *len)
 {
 	if (*offset == 0)
@@ -282,8 +293,47 @@ static void scullp_proc_offset(char *buf, char **start, off_t *offset, int *len)
 		*offset = 0;
 	}
 }
+#endif
 
+static void *scull_p_seq_start(struct seq_file *seq, loff_t *pos)
+{
+	mutex_lock(&scull_p_mtx);
+	return seq_list_start(&scull_p_list, *pos);
+}
 
+static void *scull_p_seq_next(struct seq_file *seq, void *v, loff_t *pos)
+{
+	return seq_list_next(v, &scull_p_list, pos);
+}
+
+static void scull_p_seq_stop(struct seq_file *seq, void *v)
+{
+	mutex_unlock(&scull_p_mtx);
+}
+
+static int scull_p_seq_show(struct seq_file *seq, void *v)
+{
+    struct scull_pipe *p = list_entry(v, struct scull_pipe, list);
+
+    if (mutex_lock_interruptible(&p->mutex))
+        return -ERESTARTSYS;
+    seq_printf(seq, "\nDevice %i: %p\n", p->devNum, p);
+    //seq_printf(seq, "   Queues: %p %p\n", (void*)p->inq, (void*)p->outq);
+    seq_printf(seq, "   Buffer: %p to %p (%i bytes)\n", p->buffer, p->end, p->buffersize);
+    seq_printf(seq, "   rp %p   wp %p\n", p->rp, p->wp);
+    seq_printf(seq, "   readers %i   writers %i\n", p->nreaders, p->nwriters);
+    mutex_unlock(&p->mutex);
+    return 0;
+}
+
+static const struct seq_operations scull_p_seq_ops = {
+    .start = scull_p_seq_start,
+    .next  = scull_p_seq_next,
+    .stop  = scull_p_seq_stop,
+    .show  = scull_p_seq_show,
+};
+
+#if 0
 static int scull_read_p_mem(char *buf, char **start, off_t offset, int count,
 		int *eof, void *data)
 {
@@ -308,7 +358,7 @@ static int scull_read_p_mem(char *buf, char **start, off_t offset, int count,
 	*eof = (len <= LIMIT);
 	return len;
 }
-
+#endif
 
 #endif
 
@@ -372,9 +422,14 @@ int scull_p_init(dev_t firstdev)
 		init_waitqueue_head(&(scull_p_devices[i].outq));
 		mutex_init(&scull_p_devices[i].mutex);
 		scull_p_setup_cdev(scull_p_devices + i, i);
+#ifdef SCULL_DEBUG
+        scull_p_devices[i].devNum = i;
+        list_add(&scull_p_devices[i].list, &scull_p_list);
+#endif
 	}
 #ifdef SCULL_DEBUG
-	create_proc_read_entry("scullpipe", 0, NULL, scull_read_p_mem, NULL);
+	//create_proc_read_entry("scullpipe", 0, NULL, scull_read_p_mem, NULL);
+	proc_create_seq("scullpipe", 0, NULL, &scull_p_seq_ops);
 #endif
 	return scull_p_nr_devs;
 }

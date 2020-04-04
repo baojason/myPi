@@ -42,6 +42,12 @@ int scull_nr_devs = SCULL_NR_DEVS;	/* number of bare scull devices */
 int scull_quantum = SCULL_QUANTUM;
 int scull_qset =    SCULL_QSET;
 
+/**
+ * module_param(variable, type, perm);
+ * Macro that creates a module parameter that can be adjusted by the user when
+ * the module is loaded (or at boot time for built-in code). The type can be one of
+ * bool, charp, int, invbool, long, short, ushort, uint, ulong, or intarray.
+ */
 module_param(scull_major, int, S_IRUGO);
 module_param(scull_minor, int, S_IRUGO);
 module_param(scull_nr_devs, int, S_IRUGO);
@@ -629,7 +635,7 @@ int scull_init_module(void)
 		return result;
 	}
 
-        /* 
+    /* 
 	 * Allocate the devices. This must be dynamic as the device number can
 	 * be specified at load time.
 	 */
@@ -664,5 +670,10 @@ int scull_init_module(void)
 	return result;
 }
 
+/**
+ * This macro adds a special section to the module’s object code stating where
+ * the module’s initialization function is to be found. Without this definition,
+ * your initialization function is never called.
+ */
 module_init(scull_init_module);
 module_exit(scull_cleanup_module);

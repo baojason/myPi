@@ -2,7 +2,7 @@
 # This make file need to access the kernel file addressed by "KERNELDIR"
 #
 # Comment/uncomment the following line to disable/enable debugging
-#DEBUG = y
+DEBUG = y
 CROSS_C := arm-linux-gnueabihf-
 CC := arm-linux-gnueabihf-gcc
 
