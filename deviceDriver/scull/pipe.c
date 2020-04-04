@@ -443,7 +443,13 @@ void scull_p_cleanup(void)
 	int i;
 
 #ifdef SCULL_DEBUG
-	remove_proc_entry("scullpipe", NULL);
+
+    if (WARN_ON(list_empty(&scull_p_list)))
+        return;
+    mutex_lock(&scull_p_mtx);
+    list_del(&scull_p_list);
+    mutex_unlock(&scull_p_mtx);
+    remove_proc_entry("scullpipe", NULL);
 #endif
 
 	if (!scull_p_devices)
