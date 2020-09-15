@@ -37,6 +37,6 @@ endif
 #	$(CC) -o $(OUTTEST) $(OUTTEST).c
 clean:
 	make ARCH=arm CROSS_COMPILE=$(TOOLCHAIN) -C $(KDIR) M=$(PWD) LDDINC=$(PWD)/../include clean
-	rm $(OUTTEST)
+	rm inputTest outputTest
 #	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions
 
