@@ -89,3 +89,9 @@ git config --global alias.up rebase
 git config --global alias.ci commit
 
 This will produce the ~ /.gitconfig file from the previous section. Take a more in-depth look at git config on the git config page.
+
+Using Token to push
+===================
+exmaple:
+$ git push https://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@github.com/baojason/myPi.git
+
